@@ -23,8 +23,8 @@ limitations under the License.
 #include <unordered_set>
 #include <memory>
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
 
 namespace cuba
 {
