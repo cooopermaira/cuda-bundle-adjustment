@@ -1042,6 +1042,38 @@ __global__ void schurComplementPostKernel(int cols, LxLBlockPtr invHll, Lx1Block
 	MatMulVec<3, 3>(invHll.at(colId), cl, xl.at(colId));
 }
 
+	__global__ void zeroPoseOmegaKernel(int n, Px1BlockPtr xp)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i >= n) return;
+
+	Scalar* d = const_cast<Scalar*>(xp.at(i));
+	d[0] = Scalar(0);
+	d[1] = Scalar(0);
+	//d[2] = Scalar(0);
+}
+
+	__global__ void zeroPoseTzKernel(int n, Px1BlockPtr xp)
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i >= n) return;
+
+	// Pose update layout: [omega(0..2), upsilon(3..5)]
+	// tz corresponds to upsilon.z => index 5.
+	Scalar* d = const_cast<Scalar*>(xp.at(i));
+	d[5] = Scalar(0);
+}
+
+	__global__ void zeroLandmarkZKernel(int n, Lx1BlockPtr xl)
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i >= n) return;
+
+	// Underlying memory is writable; Lx1BlockPtr is just a device view
+	Scalar* dX = const_cast<Scalar*>(xl.at(i));
+	dX[2] = Scalar(0);
+}
+
 __global__ void updatePosesKernel(int size, Px1BlockPtr xp, Vec4d* qs, Vec3d* ts)
 {
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1064,6 +1096,7 @@ __global__ void updateLandmarksKernel(int size, Lx1BlockPtr xl, Vec3d* Xws)
 	Vec3d& Xw = Xws[i];
 	Xw[0] += dXw[0];
 	Xw[1] += dXw[1];
+	Xw[2] = 0;
 	//Xw[2] += dXw[2];
 }
 
@@ -1468,6 +1501,37 @@ void schurComplementPost(const GpuLxLBlockVec& invHll, const GpuLx1BlockVec& bl,
 
 	schurComplementPostKernel<<<grid, block>>>(Hpl.cols(), invHll, bl, Hpl,
 		Hpl.outerIndices(), Hpl.innerIndices(),xp, xl);
+	CUDA_CHECK(cudaGetLastError());
+}
+
+	void zeroLandmarkZ(GpuLx1BlockVec& xl)
+{
+	if (!xl.size())
+		return;
+
+	const int block = 256;
+	const int grid  = divUp((int)xl.size(), block);
+
+	zeroLandmarkZKernel<<<grid, block>>>((int)xl.size(), xl);
+	CUDA_CHECK(cudaGetLastError());
+}
+
+	void zeroPoseTz(GpuPx1BlockVec& xp)
+{
+	if (!xp.size()) return;
+
+	const int block = 256;
+	const int grid  = divUp((int)xp.size(), block);
+
+	zeroPoseTzKernel<<<grid, block>>>((int)xp.size(), xp);
+	CUDA_CHECK(cudaGetLastError());
+}
+
+	void zeroPoseOmega(GpuPx1BlockVec& xp)
+{
+	if (!xp.size()) return;
+	int block = 256, grid = divUp((int)xp.size(), block);
+	zeroPoseOmegaKernel<<<grid, block>>>((int)xp.size(), xp);
 	CUDA_CHECK(cudaGetLastError());
 }
 

@@ -32,6 +32,7 @@ limitations under the License.
 namespace cuba
 {
 
+
 static constexpr int EDGE_TYPE_NUM = static_cast<int>(EdgeType::COUNT);
 
 using VertexMapP = std::map<int, VertexP*>;
@@ -73,7 +74,7 @@ static Vec5d vectorize(const CameraParams& camera)
 class CudaBlockSolver
 {
 public:
-
+	bool allowPoseZ_ = true, allowRotation = true;
 	enum ProfileItem
 	{
 		PROF_ITEM_INITIALIZE,
@@ -456,11 +457,20 @@ public:
 
 			const auto t2 = get_time_point();
 
+			if (!allowPoseZ_) {
+				gpu::zeroPoseTz(d_xp_);
+			}
+			if (!allowRotation) {
+				gpu::zeroPoseOmega(d_xp_);
+			}
+
 			////////////////////////////////////////////////////////////////////////////////////
 			// Solve linear equation about Δxl
 			// Hll*Δxl = -bl - HplT*Δxp
 			////////////////////////////////////////////////////////////////////////////////////
 			gpu::schurComplementPost(d_invHll_, d_bl_, d_Hpl_, d_xp_, d_xl_);
+			gpu::zeroLandmarkZ(d_xl_);
+
 
 			const auto t3 = get_time_point();
 			profItems_[PROF_ITEM_SCHUR_COMPLEMENT] += (get_duration(t0, t1) + get_duration(t2, t3));
@@ -677,6 +687,11 @@ private:
 class CudaBundleAdjustmentImpl : public CudaBundleAdjustment
 {
 public:
+
+	void setPoseUpdateAllowance(bool allowZ, bool allowRotation) override {
+		solver_.allowPoseZ_ = allowZ;
+		solver_.allowRotation = allowRotation;
+	}
 
 	void addPoseVertex(VertexP* v) override
 	{

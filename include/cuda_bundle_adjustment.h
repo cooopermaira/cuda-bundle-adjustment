@@ -41,6 +41,8 @@ public:
 	*/
 	static Ptr create();
 
+	virtual void setPoseUpdateAllowance(bool allowZ, bool allowRotation) = 0;
+
 	/** @brief Adds a pose vertex to the graph.
 	*/
 	virtual void addPoseVertex(PoseVertex* v) = 0;

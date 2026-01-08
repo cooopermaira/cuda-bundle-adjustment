@@ -19,11 +19,13 @@ limitations under the License.
 
 #include <cstdio>
 
-#define CUDA_CHECK(err) \
+#define CUDA_CHECK(expr) \
 do {\
-	if (err != cudaSuccess) { \
-		printf("[CUDA Error] %s (code: %d) at %s:%d\n", cudaGetErrorString(err), err, __FILE__, __LINE__); \
-	} \
+cudaError_t _err = (expr);                                                 \
+if (_err != cudaSuccess) {                                                 \
+printf("[CUDA Error] %s (code: %d) at %s:%d\n",                           \
+cudaGetErrorString(_err), (int)_err, __FILE__, __LINE__);         \
+}   \
 } while (0)
 
 #endif // !__MACRO_H__
