@@ -469,7 +469,7 @@ public:
 			// Hll*Δxl = -bl - HplT*Δxp
 			////////////////////////////////////////////////////////////////////////////////////
 			gpu::schurComplementPost(d_invHll_, d_bl_, d_Hpl_, d_xp_, d_xl_);
-			gpu::zeroLandmarkZ(d_xl_);
+			//gpu::zeroLandmarkZ(d_xl_);
 
 
 			const auto t3 = get_time_point();
@@ -837,6 +837,11 @@ public:
 				solver_.setLambda(lambda);
 
 				const bool success = solver_.solve();
+
+				if (!success) {
+					solver_.finalize();
+					return;
+				}
 
 				solver_.update();
 

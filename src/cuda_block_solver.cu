@@ -1097,7 +1097,7 @@ __global__ void updateLandmarksKernel(int size, Lx1BlockPtr xl, Vec3d* Xws)
 	Xw[0] += dXw[0];
 	Xw[1] += dXw[1];
 	Xw[2] = 0;
-	//Xw[2] += dXw[2];
+	Xw[2] += dXw[2];
 }
 
 __global__ void computeScaleKernel(const Scalar* x, const Scalar* b, Scalar* scale, Scalar lambda, int size)
